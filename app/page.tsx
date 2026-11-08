@@ -1,80 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { AnimatePresence, MotionConfig, motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowUpRight, ArrowDown, ArrowRight, Check, Copy, Download, Code2, BriefcaseBusiness, Menu, Minus, Plus, Pause, Play, X, Braces, Workflow, Layers, Sparkles, Mail } from "lucide-react";
 
 const EMAIL = "shivanshsoni568@gmail.com";
+import SpatialScene from "./SpatialScene";
+
 const easing = [0.22, 1, 0.36, 1] as const;
+
+function KineticBridge({paused}:{paused:boolean}){
+ const ref=useRef<HTMLDivElement>(null);const reduced=useReducedMotion();
+ const {scrollYProgress}=useScroll({target:ref,offset:["start end","end start"]});
+ const x=useTransform(scrollYProgress,[0,1],[60,-90]);
+ return <div ref={ref} className="kinetic-bridge" aria-label="Independent services. One considered system."><motion.div style={reduced||paused?{}:{x}} aria-hidden="true"><span>Independent services.</span><span className="bridge-symbol">↗</span><span>One considered system.</span></motion.div><p>Clarity in the architecture. Confidence in the outcome.</p></div>;
+}
 
 function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const reduced = useReducedMotion();
   return <motion.div className={className} initial={false} whileInView={reduced ? {} : { y: [24, 0], opacity: [0.45, 1] }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.75, ease: easing, delay }}>{children}</motion.div>;
-}
-
-function ParticleSculpture({ shape, paused }: { shape: number; paused: boolean }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const target = useRef(shape);
-  const reduced = useReducedMotion();
-  useEffect(() => { target.current = shape; }, [shape]);
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let width = 0, height = 0, frame = 0, tick = 0, lastTime = 0, visible = true;
-    let pointer = { x: 0, y: 0 }, rotation = { x: -0.25, y: 0.3 };
-    const count = window.innerWidth < 600 ? 1000 : 1700;
-    const points = Array.from({ length: count }, (_, i) => {
-      const a = i * Math.PI * (3 - Math.sqrt(5));
-      const b = Math.acos(1 - 2 * (i + .5) / count);
-      const u = (i % 85) / 85 * Math.PI * 2;
-      const v = Math.floor(i / 85) / (count / 85) * Math.PI * 2;
-      return { x: (1.0 + .42 * Math.cos(v)) * Math.cos(u), y: (1.0 + .42 * Math.cos(v)) * Math.sin(u), z: .42 * Math.sin(v),
-        shapes: [
-          [(1.0 + .42 * Math.cos(v)) * Math.cos(u), (1.0 + .42 * Math.cos(v)) * Math.sin(u), .42 * Math.sin(v)],
-          [Math.sin(b) * Math.cos(a) * 1.3, Math.cos(b) * 1.3, Math.sin(b) * Math.sin(a) * 1.3],
-          [Math.cos(a) * .6, (i / count - .5) * 2.7, Math.sin(a) * .6]
-        ] };
-    });
-    const size = () => {
-      const rect = canvas.getBoundingClientRect(); width = rect.width; height = rect.height;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = width * dpr; canvas.height = height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-    const observer = new ResizeObserver(size); observer.observe(canvas); size();
-    const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }); intersection.observe(canvas);
-    const move = (e: PointerEvent) => { const r=canvas.getBoundingClientRect(); pointer={x:(e.clientX-r.left)/r.width-.5,y:(e.clientY-r.top)/r.height-.5}; };
-    const leave = () => { pointer = {x:0,y:0}; };
-    canvas.addEventListener("pointermove",move); canvas.addEventListener("pointerleave",leave);
-    const draw = (now: number) => {
-      frame = requestAnimationFrame(draw);
-      if (!visible || document.hidden || now - lastTime < 32) return;
-      lastTime = now;
-      if (!paused && !reduced) tick += .007;
-      rotation.x += ((-.45 + (reduced ? 0 : pointer.y) * .7) - rotation.x) * .04;
-      rotation.y += (((reduced ? .35 : tick) + pointer.x * .8) - rotation.y) * .04;
-      ctx.clearRect(0,0,width,height);
-      const scale = Math.min(width,height) * .263;
-      const cx = Math.cos(rotation.x), sx = Math.sin(rotation.x), cy = Math.cos(rotation.y), sy = Math.sin(rotation.y);
-      const rendered = points.map((p,i) => {
-        const t = p.shapes[target.current];
-        const morph = reduced ? 1 : .065;
-        p.x += (t[0]-p.x)*morph; p.y += (t[1]-p.y)*morph; p.z += (t[2]-p.z)*morph;
-        const x = p.x*cy-p.z*sy, z1=p.x*sy+p.z*cy;
-        const y=p.y*cx-z1*sx, z=p.y*sx+z1*cx;
-        const perspective=4/(4+z);
-        return { x:width/2+x*scale*perspective,y:height/2+y*scale*perspective,z,r:(.65+(z+1.5)*.32)*perspective, accent:i%19===0 };
-      }).sort((a,b)=>b.z-a.z);
-      for (const p of rendered) {
-        ctx.fillStyle=p.accent?`rgba(95,128,19,${.6+(1.5-p.z)*.12})`:`rgba(28,32,27,${Math.max(.12,Math.min(.92,.38+(1.5-p.z)*.18))})`;
-        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
-      }
-    };
-    frame=requestAnimationFrame(draw);
-    return () => {cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerleave",leave);};
-  }, [paused, reduced]);
-  return <canvas ref={ref} className="particle-canvas" aria-hidden="true" />;
 }
 
 const work = [
@@ -84,7 +28,7 @@ const work = [
 ];
 
 function WorkVisual({ kind, reduced }: { kind: string; reduced: boolean }) {
-  return <div className={`work-visual ${kind}`} aria-label="Conceptual illustration of an engineering workflow">
+  return <div className={`work-visual ${kind}`} onPointerMove={e=>{if(reduced)return;const r=e.currentTarget.getBoundingClientRect();e.currentTarget.style.setProperty('--tilt-x',`${-(e.clientY-r.top-r.height/2)/35}deg`);e.currentTarget.style.setProperty('--tilt-y',`${(e.clientX-r.left-r.width/2)/35}deg`);}} onPointerLeave={e=>{e.currentTarget.style.setProperty('--tilt-x','0deg');e.currentTarget.style.setProperty('--tilt-y','0deg');}} aria-label="Conceptual illustration of an engineering workflow">
     <div className="visual-header"><span><span className="tiny-dot" /> SYSTEM STUDY</span><span>CONCEPTUAL / NOT LIVE DATA</span></div>
     {kind === "payments" ? <div className="payment-study">
       <div className="payment-orbit orbit-one" /><div className="payment-orbit orbit-two" />
@@ -124,16 +68,16 @@ export default function Home() {
     <AnimatePresence>{menu&&<motion.nav id="mobile-menu" aria-label="Mobile navigation" className="mobile-menu" initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}}>{[ ["Selected work","work"],["About","about"],["Experience","experience"],["Contact","contact"] ].map(([label,id])=><a key={id} href={`#${id}`} onClick={()=>setMenu(false)}>{label}<ArrowUpRight/></a>)}</motion.nav>}</AnimatePresence></header>
     <main id="main">
       <section className="hero section-shell" id="home">
-        <div className="hero-topline"><span>Shivansh Soni / Software Engineer</span><span className="location"><span className="status-dot"/> Based in Indore, India</span></div>
-        <div className="hero-grid"><div className="hero-copy"><h1><motion.span initial={false} animate={reduced?{}:{y:[28,0],opacity:[.3,1]}} transition={{duration:1,ease:easing}}>Engineering</motion.span><motion.span className="second-line" initial={false} animate={reduced?{}:{y:[34,0],opacity:[.3,1]}} transition={{duration:1,delay:.12,ease:easing}}>what’s <span className="next-word">next<svg viewBox="0 0 235 18" aria-hidden="true"><motion.path d="M3 12 Q100 -3 231 9" fill="none" stroke="currentColor" strokeWidth="3" initial={false} animate={{pathLength:1}}/></svg></span><span className="period">.</span></motion.span></h1>
-          <p className="hero-description">I build the systems behind the experience.<br/>Java backends. Connected services.<br/><span>And a new chapter in AI.</span></p>
-          <div className="hero-actions"><a className="button button-dark" href="#work">Explore my work <ArrowDown size={17}/></a><a className="text-link" href="/shivansh-soni-resume.pdf" download>Résumé <Download size={16}/></a></div>
-          <div className="hero-current"><span className="mini-line"/><span>Currently building at <strong>Magic EdTech</strong></span></div>
-        </div><div className="sculpture-area"><div className="sculpture-coordinate top-left">FORM / {String(shape+1).padStart(2,"0")}</div><div className="sculpture-coordinate top-right"><span className="tiny-dot"/> {paused||reduced?"STILL":"IN MOTION"}</div><ParticleSculpture shape={shape} paused={paused}/><div className="sculpture-bottom"><div className="shape-controls" aria-label="Choose sculpture shape">{["Orbit","Sphere","Helix"].map((s,i)=><button key={s} onClick={()=>setShape(i)} className={shape===i?"active":""} aria-pressed={shape===i}>{s}</button>)}</div><button className="pause-button icon-button" aria-label={paused?"Play animations":"Pause animations"} onClick={()=>setPaused(!paused)} aria-pressed={paused}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div><span className="sculpture-caption">Independent parts. One connected whole.</span></div></div>
-        <div className="hero-bottom"><span>BACKEND ENGINEERING & AI SYSTEMS</span><span className="scroll-hint">A little further down <ArrowDown size={14}/></span><span>PORTFOLIO / 2026</span></div>
+        <div className="hero-topline"><span>Shivansh Soni — Software Engineer</span><span className="location"><span className="status-dot"/> Indore, India</span></div>
+        <div className="hero-grid"><div className="hero-copy"><h1 aria-label="Engineering beyond the interface.">{["Engineering","beyond the","interface."].map((word,i)=><motion.span key={word} initial={false} animate={reduced?{}:{y:[50,0],opacity:[.25,1],filter:["blur(8px)","blur(0px)"]}} transition={{duration:1.2,delay:i*.13,ease:easing}} className={i===2?"accent-line":""}>{word}</motion.span>)}</h1>
+          <div className="hero-intro"><span className="intro-rule"/><p>Java backends. Connected systems.<br/>A new dimension in AI-native engineering.</p></div>
+          <div className="hero-actions"><a className="button button-dark" href="#work">Enter my world <ArrowDown size={17}/></a><a className="text-link" href="/shivansh-soni-resume.pdf" download>Résumé <Download size={16}/></a></div>
+        </div><div className="sculpture-area"><div className="scene-frame"/><div className="scene-reticle reticle-top"/><div className="scene-reticle reticle-bottom"/><SpatialScene shape={shape} paused={paused}/><div className="sculpture-coordinate top-left">EXPERIMENT / {String(shape+1).padStart(2,"0")}</div><div className="sculpture-coordinate top-right">{shape===2?"4D → 3D":"REALTIME / WEBGL"}</div><div className="sculpture-bottom"><div className="shape-controls" aria-label="Choose sculpture shape">{["Knot","Orbit","Tesseract"].map((s,i)=><button key={s} onClick={()=>setShape(i)} className={shape===i?"active":""} aria-pressed={shape===i}>{s}</button>)}</div><button className="pause-button icon-button" aria-label={paused?"Play animations":"Pause animations"} onClick={()=>setPaused(!paused)} aria-pressed={paused}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div><span className="sculpture-caption">{shape===2?"A four-dimensional cube, projected into three dimensions.":"A study in connection. Move your pointer or drag to explore."}</span></div></div>
+        <div className="hero-bottom"><span className="hero-current"><span className="status-dot"/> Currently at <strong>Magic EdTech</strong></span><a className="scroll-hint" href="#work">Scroll to discover <ArrowDown size={14}/></a><span>SELECTED WORK / 2026</span></div>
       </section>
       <div className="expertise-strip" aria-label="Areas of focus"><span>Java & Spring</span><span className="strip-asterisk">✳</span><span>Banking & payments</span><span className="strip-asterisk">✳</span><span>Event-driven systems</span><span className="strip-asterisk">✳</span><span>AI-native engineering</span></div>
-      <section className="work-section section-shell" id="work"><div className="section-heading"><Reveal><h2>Under the hood.<br/><span className="muted">Where I do my best work.</span></h2></Reveal><p>Selected contributions across banking,<br className="desktop-break"/> connected systems, and AI.</p></div>
+      <KineticBridge paused={paused}/>
+      <section className="work-section section-shell" id="work"><div className="section-heading"><Reveal><h2>Built beneath<br/><span className="muted">the surface.</span></h2></Reveal><p>Selected contributions across banking,<br className="desktop-break"/> connected systems, and AI.</p></div>
         <div className="work-tabs" role="tablist" aria-label="Explore engineering work">{work.map((w,i)=><button key={w.kind} id={`work-tab-${i}`} role="tab" aria-selected={activeWork===i} aria-controls="work-panel" onClick={()=>{setActiveWork(i);setNotes(false);}} onKeyDown={e=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();const n=(i+(e.key==="ArrowRight"?1:2))%3;setActiveWork(n);setNotes(false);document.getElementById(`work-tab-${n}`)?.focus();}}} tabIndex={activeWork===i?0:-1} className={activeWork===i?"selected":""}>{w.category}{activeWork===i&&<motion.span className="tab-line" layoutId="work-line" transition={{type:"spring",stiffness:380,damping:35}}/>}</button>)}</div>
         <div className="work-panel" role="tabpanel" id="work-panel" aria-labelledby={`work-tab-${activeWork}`}><AnimatePresence mode="wait"><motion.div className="work-grid" key={activeWork} initial={{opacity:.3,y:reduced?0:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:reduced?0:-8}} transition={{duration:.3,ease:easing}}><WorkVisual kind={current.kind} reduced={!!reduced||paused}/><div className="work-copy"><div className="work-company">{current.company}<span>{current.period}</span></div><h3>{current.title.split("\n").map((t,i)=><span key={i}>{t}</span>)}</h3><p>{current.desc}</p><div className="tags">{current.tags.map(tag=><span key={tag}>{tag}</span>)}</div><button className="text-link notes-button" aria-expanded={notes} aria-controls="work-notes" onClick={()=>setNotes(!notes)}>{notes?"Close contribution notes":"Read contribution notes"}{notes?<Minus size={18}/>:<ArrowUpRight size={18}/>}</button></div></motion.div></AnimatePresence>
         <AnimatePresence>{notes&&<motion.div className="work-notes" id="work-notes" initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}} transition={{duration:.35}}><div><h4>{current.heading}</h4><p>{current.intro}</p></div><ul>{current.details.map(d=><li key={d}>{d}</li>)}</ul></motion.div>}</AnimatePresence></div>
@@ -144,6 +88,6 @@ export default function Home() {
       <section className="credentials section-shell"><div><span className="credential-label">Education</span><h3>B.Tech, Information Technology</h3><p>Technocrats Institute of Technology</p><span>2020 — 2024</span></div><div><span className="credential-label">Microsoft certified</span><h3>Azure Fundamentals</h3><p>Azure AI Fundamentals</p><span>Cloud foundations. AI foundations.</span></div><div><span className="credential-label">Problem solving</span><h3>Top 12%</h3><p>LeetCode contest rating</p><span>A habit of thinking things through.</span></div></section>
       <section className="contact-section" id="contact"><div className="section-shell contact-inner"><div className="contact-top"><span><span className="status-dot"/> Start a conversation</span><span>INDORE, INDIA / {new Date().getFullYear()}</span></div><h2>Great things start<br/>with a <a href={`mailto:${EMAIL}`}>hello<ArrowUpRight aria-hidden="true"/></a><span className="green-period">.</span></h2><div className="contact-bottom"><div><p>Have a thoughtful problem to solve?<br/>I’d love to hear about it.</p><div className="email-row"><a href={`mailto:${EMAIL}`}>{EMAIL}</a><button className="icon-button copy-email" aria-label={copied?"Email copied":"Copy email address"} onClick={copyEmail}>{copied?<Check size={17}/>:<Copy size={17}/>}</button><span className="copy-feedback" role="status">{copied?"Copied!":copyError?"Please select the email to copy.":""}</span></div></div><div className="social-links"><a href="https://www.linkedin.com/in/shivansh1soni/" target="_blank" rel="noopener noreferrer"><BriefcaseBusiness size={17}/>LinkedIn<ArrowUpRight size={16}/></a><a href="https://github.com/sonii-shivansh" target="_blank" rel="noopener noreferrer"><Code2 size={17}/>GitHub<ArrowUpRight size={16}/></a><a href="/shivansh-soni-resume.pdf" download><Download size={17}/>Résumé<ArrowUpRight size={16}/></a></div></div></div></section>
     </main><footer className="footer section-shell"><a href="#home" className="footer-name">Shivansh Soni<span>© {new Date().getFullYear()}</span></a><div className="footer-right"><button onClick={()=>setColophon(!colophon)} aria-expanded={colophon} aria-controls="colophon">Behind the build {colophon?<Minus size={13}/>:<Plus size={13}/>}</button><a href="#home">Back to top <ArrowUpRight size={14}/></a></div></footer>
-    <AnimatePresence>{colophon&&<motion.section id="colophon" className="colophon section-shell" initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}}><div className="colophon-intro"><h2>Built with intention.</h2><p>A custom React portfolio with Framer Motion, an original Canvas particle study, self-hosted typography, and accessible motion preferences. Design references: Motion, Dots UI, Watermelon UI, Manus, and Impeccable. UI/UX Pro Max informed interaction and accessibility decisions.</p><div className="colophon-links"><a href="https://motion.dev" target="_blank" rel="noreferrer">Motion ↗</a><a href="https://dotsui.dev" target="_blank" rel="noreferrer">Dots UI ↗</a><a href="https://ui.watermelon.sh" target="_blank" rel="noreferrer">Watermelon UI ↗</a><a href="https://manus.im" target="_blank" rel="noreferrer">Manus ↗</a><a href="https://github.com/pbakaus/impeccable" target="_blank" rel="noreferrer">Impeccable ↗</a></div></div><div className="reference-images"><figure><img src="/references/motion.jpg" width="691" height="1536" loading="lazy" alt="Supplied reference screenshot highlighting the Framer Motion package"/><figcaption>Motion reference supplied for this portfolio.</figcaption></figure><figure><img src="/references/design.jpg" width="691" height="1536" loading="lazy" alt="Supplied reference screenshot of the UI UX Pro Max GitHub repository"/><figcaption>Design guidance reference supplied for this portfolio.</figcaption></figure></div></motion.section>}</AnimatePresence>
+    <AnimatePresence>{colophon&&<motion.section id="colophon" className="colophon section-shell" initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}}><div className="colophon-intro"><h2>Built with intention.</h2><p>A custom React portfolio with Framer Motion, a real-time Three.js sculpture, a mathematically projected 4D tesseract, self-hosted typography, and accessible motion preferences. Design references: Motion, Dots UI, Watermelon UI, Manus, and Impeccable. UI/UX Pro Max informed interaction and accessibility decisions.</p><div className="colophon-links"><a href="https://motion.dev" target="_blank" rel="noreferrer">Motion ↗</a><a href="https://dotsui.dev" target="_blank" rel="noreferrer">Dots UI ↗</a><a href="https://ui.watermelon.sh" target="_blank" rel="noreferrer">Watermelon UI ↗</a><a href="https://manus.im" target="_blank" rel="noreferrer">Manus ↗</a><a href="https://github.com/pbakaus/impeccable" target="_blank" rel="noreferrer">Impeccable ↗</a></div></div><div className="reference-images"><figure><img src="/references/motion.jpg" width="691" height="1536" loading="lazy" alt="Supplied reference screenshot highlighting the Framer Motion package"/><figcaption>Motion reference supplied for this portfolio.</figcaption></figure><figure><img src="/references/design.jpg" width="691" height="1536" loading="lazy" alt="Supplied reference screenshot of the UI UX Pro Max GitHub repository"/><figcaption>Design guidance reference supplied for this portfolio.</figcaption></figure></div></motion.section>}</AnimatePresence>
   </div></MotionConfig>;
 }
