@@ -39,3 +39,9 @@ Original composition and custom implementation. Design research included Motion,
 The latest design adds `app/SpatialScene.tsx` and `app/spatial.css`. Three.js is dynamically loaded in the browser. Geometry, lighting, and reflection environments are generated locally. No HDRI server or third-party model downloads are required. WebGL failure displays a CSS fallback. The 4D study rotates the tesseract in XW and YZ planes, projects with `2.8 / (3.6 - w)`, and connects vertex pairs that differ in exactly one coordinate.
 
 Validation: TypeScript and the production build are required. Browser visual QA for this edition was blocked by the available browser environment and must be reviewed on the published URL.
+
+## Vercel deployment
+
+Production: https://shivansh-soni.vercel.app
+
+`vercel.json` selects the native Next.js build (`pnpm exec next build`) on Vercel. The existing `build` script remains available for the Sites/Vinext deployment. Install with the committed pnpm lockfile; the Vercel project uses Node 22. GitHub login access must be configured in Vercel to deploy repository commits.

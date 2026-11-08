@@ -3,7 +3,7 @@ import "./fonts.css";
 import "./globals.css";
 import "./spatial.css";
 export const metadata: Metadata = {
-  metadataBase: new URL("https://shivansh-soni-engineered.mirroredaster.chatgpt.site"),
+  metadataBase: new URL("https://shivansh-soni.vercel.app"),
   title: "Shivansh Soni — Backend & AI Engineer",
   description: "Java backends. Connected services. A new chapter in AI. Explore Shivansh Soni’s work across enterprise banking, event-driven architecture, and AI-native engineering.",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
