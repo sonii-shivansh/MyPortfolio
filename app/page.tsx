@@ -1,0 +1,149 @@
+"use client";
+
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, MotionConfig, motion, useReducedMotion, useScroll, useSpring } from "framer-motion";
+import { ArrowUpRight, ArrowDown, ArrowRight, Check, Copy, Download, Code2, BriefcaseBusiness, Menu, Minus, Plus, Pause, Play, X, Braces, Workflow, Layers, Sparkles, Mail } from "lucide-react";
+
+const EMAIL = "shivanshsoni568@gmail.com";
+const easing = [0.22, 1, 0.36, 1] as const;
+
+function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
+  const reduced = useReducedMotion();
+  return <motion.div className={className} initial={false} whileInView={reduced ? {} : { y: [24, 0], opacity: [0.45, 1] }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.75, ease: easing, delay }}>{children}</motion.div>;
+}
+
+function ParticleSculpture({ shape, paused }: { shape: number; paused: boolean }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const target = useRef(shape);
+  const reduced = useReducedMotion();
+  useEffect(() => { target.current = shape; }, [shape]);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let width = 0, height = 0, frame = 0, tick = 0, lastTime = 0, visible = true;
+    let pointer = { x: 0, y: 0 }, rotation = { x: -0.25, y: 0.3 };
+    const count = window.innerWidth < 600 ? 1000 : 1700;
+    const points = Array.from({ length: count }, (_, i) => {
+      const a = i * Math.PI * (3 - Math.sqrt(5));
+      const b = Math.acos(1 - 2 * (i + .5) / count);
+      const u = (i % 85) / 85 * Math.PI * 2;
+      const v = Math.floor(i / 85) / (count / 85) * Math.PI * 2;
+      return { x: (1.0 + .42 * Math.cos(v)) * Math.cos(u), y: (1.0 + .42 * Math.cos(v)) * Math.sin(u), z: .42 * Math.sin(v),
+        shapes: [
+          [(1.0 + .42 * Math.cos(v)) * Math.cos(u), (1.0 + .42 * Math.cos(v)) * Math.sin(u), .42 * Math.sin(v)],
+          [Math.sin(b) * Math.cos(a) * 1.3, Math.cos(b) * 1.3, Math.sin(b) * Math.sin(a) * 1.3],
+          [Math.cos(a) * .6, (i / count - .5) * 2.7, Math.sin(a) * .6]
+        ] };
+    });
+    const size = () => {
+      const rect = canvas.getBoundingClientRect(); width = rect.width; height = rect.height;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = width * dpr; canvas.height = height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const observer = new ResizeObserver(size); observer.observe(canvas); size();
+    const intersection = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; }); intersection.observe(canvas);
+    const move = (e: PointerEvent) => { const r=canvas.getBoundingClientRect(); pointer={x:(e.clientX-r.left)/r.width-.5,y:(e.clientY-r.top)/r.height-.5}; };
+    const leave = () => { pointer = {x:0,y:0}; };
+    canvas.addEventListener("pointermove",move); canvas.addEventListener("pointerleave",leave);
+    const draw = (now: number) => {
+      frame = requestAnimationFrame(draw);
+      if (!visible || document.hidden || now - lastTime < 32) return;
+      lastTime = now;
+      if (!paused && !reduced) tick += .007;
+      rotation.x += ((-.45 + (reduced ? 0 : pointer.y) * .7) - rotation.x) * .04;
+      rotation.y += (((reduced ? .35 : tick) + pointer.x * .8) - rotation.y) * .04;
+      ctx.clearRect(0,0,width,height);
+      const scale = Math.min(width,height) * .263;
+      const cx = Math.cos(rotation.x), sx = Math.sin(rotation.x), cy = Math.cos(rotation.y), sy = Math.sin(rotation.y);
+      const rendered = points.map((p,i) => {
+        const t = p.shapes[target.current];
+        const morph = reduced ? 1 : .065;
+        p.x += (t[0]-p.x)*morph; p.y += (t[1]-p.y)*morph; p.z += (t[2]-p.z)*morph;
+        const x = p.x*cy-p.z*sy, z1=p.x*sy+p.z*cy;
+        const y=p.y*cx-z1*sx, z=p.y*sx+z1*cx;
+        const perspective=4/(4+z);
+        return { x:width/2+x*scale*perspective,y:height/2+y*scale*perspective,z,r:(.65+(z+1.5)*.32)*perspective, accent:i%19===0 };
+      }).sort((a,b)=>b.z-a.z);
+      for (const p of rendered) {
+        ctx.fillStyle=p.accent?`rgba(95,128,19,${.6+(1.5-p.z)*.12})`:`rgba(28,32,27,${Math.max(.12,Math.min(.92,.38+(1.5-p.z)*.18))})`;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+      }
+    };
+    frame=requestAnimationFrame(draw);
+    return () => {cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerleave",leave);};
+  }, [paused, reduced]);
+  return <canvas ref={ref} className="particle-canvas" aria-hidden="true" />;
+}
+
+const work = [
+  { category: "Banking systems", title: "Built for the moments\nthat matter.", desc: "Enterprise banking services, payment modernization, and secure integrations—where reliability is part of the brief.", company: "Tech Mahindra", period: "2024 — 2026", tags: ["Java 11 / 17", "Spring Boot", "Spring Security"], heading: "Banking & payments", intro: "Contributed to the backend systems that support real banking workflows.", details: ["Developed and maintained enterprise banking services and RESTful APIs with Java, Spring Boot, Spring MVC, and Spring Security.", "Contributed to payment infrastructure modernization, including Banknet pipelines and secure tokenization gateway integration.", "Assisted with moving legacy monoliths toward containerized, cloud-native environments and upgrading Java 11 applications to Java 17."], kind: "payments" },
+  { category: "Event-driven architecture", title: "The right event.\nThe right response.", desc: "Messaging pipelines and transaction alerts designed around connected, responsive banking workflows.", company: "Tech Mahindra", period: "2024 — 2026", tags: ["Apache Kafka", "JMS", "ActiveMQ"], heading: "Messaging & transaction alerts", intro: "Connected services through event-driven messaging and real-time alerting.", details: ["Built and maintained messaging pipelines using Kafka, JMS, and ActiveMQ for high-throughput banking workflows.", "Implemented a threshold-based, real-time transaction alert system to improve fraud detection responsiveness in production.", "Worked with VM-based and Dockerized deployments across enterprise backend services."], kind: "events" },
+  { category: "AI-native engineering", title: "Intelligence, with\nengineering behind it.", desc: "Bringing AI capabilities into modern education platforms, informed by hands-on model evaluation experience.", company: "Magic EdTech · Outlier", period: "2023 — Present", tags: ["AI orchestration", "Java", "RLHF"], heading: "AI integration & evaluation", intro: "Connecting backend engineering with experience evaluating how AI systems behave.", details: ["Currently integrating AI capabilities into education technology platforms at Magic EdTech, working on AI orchestration and Java/Spring-based backend services.", "At Outlier, designed 300+ multi-turn scenarios to evaluate model reasoning and provided corrective responses.", "Evaluated 1,000+ model responses and completed 400+ RLHF tasks, with written justification for response selection."], kind: "ai" }
+];
+
+function WorkVisual({ kind, reduced }: { kind: string; reduced: boolean }) {
+  return <div className={`work-visual ${kind}`} aria-label="Conceptual illustration of an engineering workflow">
+    <div className="visual-header"><span><span className="tiny-dot" /> SYSTEM STUDY</span><span>CONCEPTUAL / NOT LIVE DATA</span></div>
+    {kind === "payments" ? <div className="payment-study">
+      <div className="payment-orbit orbit-one" /><div className="payment-orbit orbit-two" />
+      <motion.div className="token-card" animate={reduced ? {} : { y: [0,-9,0], rotate: [-8,-6,-8] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}><div className="token-top"><span>SECURE BY DESIGN</span><Layers size={24} /></div><div className="chip"><i /><i /><i /></div><div className="card-code">•••• &nbsp;•••• &nbsp;•••• &nbsp;TOKEN</div><div className="token-bottom"><span>PAYMENT INFRASTRUCTURE</span><span>↗</span></div></motion.div>
+      <div className="diagram-label left-label">Request <ArrowRight size={14} /></div><div className="diagram-label right-label"><Check size={13} /> Validated</div>
+    </div> : kind === "events" ? <div className="event-study"><div className="event-line" /><div className="event-node"><Braces /><span>Producer</span></div><div className="event-node central"><Workflow size={30} /><span>Message broker</span><small>Kafka · JMS · ActiveMQ</small></div><div className="event-node"><Check /><span>Consumer</span></div>{[0,1,2].map(n=><motion.i key={n} className="event-packet" animate={reduced?{}:{left:["15%","85%"],opacity:[0,1,1,0]}} transition={{duration:3,delay:n,repeat:Infinity,ease:"linear"}} />)}</div> : <div className="ai-study"><div className="ai-core"><Sparkles size={40} /></div>{[0,1,2].map(n=><motion.div key={n} className={`ai-ring ring-${n}`} animate={reduced?{}:{rotate:360}} transition={{duration:18+n*9,repeat:Infinity,ease:"linear"}}><i /></motion.div>)}<span className="ai-label prompt-label">ORCHESTRATE</span><span className="ai-label evaluate-label">EVALUATE</span><span className="ai-label integrate-label">INTEGRATE</span></div>}
+    <div className="visual-footer"><span>{kind === "payments" ? "Trust, built into the flow." : kind === "events" ? "Independent services. Connected systems." : "From model behavior to useful systems."}</span><span className="visual-cross">+</span></div>
+  </div>;
+}
+
+const experiences = [
+  { company:"Magic EdTech",role:"Senior Associate · Software Engineer, AI Native",period:"May 2026 — Present",location:"Indore, India",copy:"Integrating AI capabilities into modern education technology platforms. Working on AI orchestration and backend services using Java and Spring-based microservices.",tags:["AI orchestration","Java","Spring"] },
+  { company:"Tech Mahindra",role:"Associate Software Engineer",period:"Sep 2024 — Mar 2026",location:"Pune, India",copy:"Built enterprise banking backend services, RESTful APIs, and event-driven pipelines. Contributed to payment modernization, tokenization integration, transaction alerting, and legacy-to-cloud-native migration.",tags:["Banking & payments","Microservices","Kafka"] },
+  { company:"Outlier",role:"Software Engineer · AI Training & Evaluation",period:"May 2023 — Aug 2024",location:"Noida, India",copy:"Designed 300+ multi-turn evaluation scenarios, evaluated 1,000+ model responses, and completed 400+ RLHF tasks—assessing reasoning, comparing outputs, and providing written feedback.",tags:["Model evaluation","RLHF","Reasoning scenarios"] }
+];
+const skillGroups = [
+  {name:"Backend",icon:Braces,summary:"The foundation of reliable products.",skills:["Java 11 / 17 / 21","SQL","Spring Boot","Spring MVC","Spring Security","Spring Batch","Spring Cloud"]},
+  {name:"Architecture",icon:Workflow,summary:"Services that work together, deliberately.",skills:["Microservices","RESTful APIs","Event-driven architecture","Payment processing","Tokenization","Apache Kafka","JMS","ActiveMQ"]},
+  {name:"Cloud & delivery",icon:Layers,summary:"From a working service to a repeatable delivery.",skills:["Docker","Kubernetes","Jenkins","CI/CD","Microsoft Azure"]},
+  {name:"AI",icon:Sparkles,summary:"Connecting intelligence with engineering discipline.",skills:["AI orchestration","RLHF","LLM response evaluation"]}
+];
+
+export default function Home() {
+  const reduced = useReducedMotion();
+  const [menu,setMenu]=useState(false),[shape,setShape]=useState(0),[paused,setPaused]=useState(false),[activeWork,setActiveWork]=useState(0),[notes,setNotes]=useState(false),[experience,setExperience]=useState<number|null>(0),[skill,setSkill]=useState(0),[copied,setCopied]=useState(false),[copyError,setCopyError]=useState(false),[colophon,setColophon]=useState(false);
+  const {scrollYProgress}=useScroll();
+  const progress=useSpring(scrollYProgress,{stiffness:100,damping:30});
+  const current=work[activeWork];
+  const copyTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  useEffect(()=>()=>{if(copyTimer.current)clearTimeout(copyTimer.current);},[]);
+  useEffect(()=>{ const close=(e:KeyboardEvent)=>{if(e.key==="Escape")setMenu(false);};window.addEventListener("keydown",close);return()=>window.removeEventListener("keydown",close);},[]);
+  async function copyEmail(){try{await navigator.clipboard.writeText(EMAIL);setCopied(true);setCopyError(false);if(copyTimer.current)clearTimeout(copyTimer.current);copyTimer.current=setTimeout(()=>setCopied(false),2400);}catch{setCopyError(true);}}
+  return <MotionConfig reducedMotion="user"><div className={`site ${paused?"motion-paused":""}`}>
+    <motion.div className="reading-progress" style={{scaleX:progress}} />
+    <a className="skip-link" href="#main">Skip to content</a>
+    <header className="header"><a className="wordmark" href="#home" aria-label="Shivansh Soni, home">s<span className="wordmark-dot">.</span><span className="wordmark-name">shivansh soni</span></a><nav className="desktop-nav" aria-label="Main navigation"><a href="#work">Selected work</a><a href="#about">About</a><a href="#experience">Experience</a></nav><a className="nav-contact" href="#contact">Let’s talk <ArrowUpRight size={16}/></a><button className="menu-toggle icon-button" onClick={()=>setMenu(!menu)} aria-expanded={menu} aria-controls="mobile-menu" aria-label={menu?"Close menu":"Open menu"}>{menu?<X/>:<Menu/>}</button>
+    <AnimatePresence>{menu&&<motion.nav id="mobile-menu" aria-label="Mobile navigation" className="mobile-menu" initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}}>{[ ["Selected work","work"],["About","about"],["Experience","experience"],["Contact","contact"] ].map(([label,id])=><a key={id} href={`#${id}`} onClick={()=>setMenu(false)}>{label}<ArrowUpRight/></a>)}</motion.nav>}</AnimatePresence></header>
+    <main id="main">
+      <section className="hero section-shell" id="home">
+        <div className="hero-topline"><span>Shivansh Soni / Software Engineer</span><span className="location"><span className="status-dot"/> Based in Indore, India</span></div>
+        <div className="hero-grid"><div className="hero-copy"><h1><motion.span initial={false} animate={reduced?{}:{y:[28,0],opacity:[.3,1]}} transition={{duration:1,ease:easing}}>Engineering</motion.span><motion.span className="second-line" initial={false} animate={reduced?{}:{y:[34,0],opacity:[.3,1]}} transition={{duration:1,delay:.12,ease:easing}}>what’s <span className="next-word">next<svg viewBox="0 0 235 18" aria-hidden="true"><motion.path d="M3 12 Q100 -3 231 9" fill="none" stroke="currentColor" strokeWidth="3" initial={false} animate={{pathLength:1}}/></svg></span><span className="period">.</span></motion.span></h1>
+          <p className="hero-description">I build the systems behind the experience.<br/>Java backends. Connected services.<br/><span>And a new chapter in AI.</span></p>
+          <div className="hero-actions"><a className="button button-dark" href="#work">Explore my work <ArrowDown size={17}/></a><a className="text-link" href="/shivansh-soni-resume.pdf" download>Résumé <Download size={16}/></a></div>
+          <div className="hero-current"><span className="mini-line"/><span>Currently building at <strong>Magic EdTech</strong></span></div>
+        </div><div className="sculpture-area"><div className="sculpture-coordinate top-left">FORM / {String(shape+1).padStart(2,"0")}</div><div className="sculpture-coordinate top-right"><span className="tiny-dot"/> {paused||reduced?"STILL":"IN MOTION"}</div><ParticleSculpture shape={shape} paused={paused}/><div className="sculpture-bottom"><div className="shape-controls" aria-label="Choose sculpture shape">{["Orbit","Sphere","Helix"].map((s,i)=><button key={s} onClick={()=>setShape(i)} className={shape===i?"active":""} aria-pressed={shape===i}>{s}</button>)}</div><button className="pause-button icon-button" aria-label={paused?"Play animations":"Pause animations"} onClick={()=>setPaused(!paused)} aria-pressed={paused}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div><span className="sculpture-caption">Independent parts. One connected whole.</span></div></div>
+        <div className="hero-bottom"><span>BACKEND ENGINEERING & AI SYSTEMS</span><span className="scroll-hint">A little further down <ArrowDown size={14}/></span><span>PORTFOLIO / 2026</span></div>
+      </section>
+      <div className="expertise-strip" aria-label="Areas of focus"><span>Java & Spring</span><span className="strip-asterisk">✳</span><span>Banking & payments</span><span className="strip-asterisk">✳</span><span>Event-driven systems</span><span className="strip-asterisk">✳</span><span>AI-native engineering</span></div>
+      <section className="work-section section-shell" id="work"><div className="section-heading"><Reveal><h2>Under the hood.<br/><span className="muted">Where I do my best work.</span></h2></Reveal><p>Selected contributions across banking,<br className="desktop-break"/> connected systems, and AI.</p></div>
+        <div className="work-tabs" role="tablist" aria-label="Explore engineering work">{work.map((w,i)=><button key={w.kind} id={`work-tab-${i}`} role="tab" aria-selected={activeWork===i} aria-controls="work-panel" onClick={()=>{setActiveWork(i);setNotes(false);}} onKeyDown={e=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();const n=(i+(e.key==="ArrowRight"?1:2))%3;setActiveWork(n);setNotes(false);document.getElementById(`work-tab-${n}`)?.focus();}}} tabIndex={activeWork===i?0:-1} className={activeWork===i?"selected":""}>{w.category}{activeWork===i&&<motion.span className="tab-line" layoutId="work-line" transition={{type:"spring",stiffness:380,damping:35}}/>}</button>)}</div>
+        <div className="work-panel" role="tabpanel" id="work-panel" aria-labelledby={`work-tab-${activeWork}`}><AnimatePresence mode="wait"><motion.div className="work-grid" key={activeWork} initial={{opacity:.3,y:reduced?0:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:reduced?0:-8}} transition={{duration:.3,ease:easing}}><WorkVisual kind={current.kind} reduced={!!reduced||paused}/><div className="work-copy"><div className="work-company">{current.company}<span>{current.period}</span></div><h3>{current.title.split("\n").map((t,i)=><span key={i}>{t}</span>)}</h3><p>{current.desc}</p><div className="tags">{current.tags.map(tag=><span key={tag}>{tag}</span>)}</div><button className="text-link notes-button" aria-expanded={notes} aria-controls="work-notes" onClick={()=>setNotes(!notes)}>{notes?"Close contribution notes":"Read contribution notes"}{notes?<Minus size={18}/>:<ArrowUpRight size={18}/>}</button></div></motion.div></AnimatePresence>
+        <AnimatePresence>{notes&&<motion.div className="work-notes" id="work-notes" initial={{opacity:0,height:0}} animate={{opacity:1,height:"auto"}} exit={{opacity:0,height:0}} transition={{duration:.35}}><div><h4>{current.heading}</h4><p>{current.intro}</p></div><ul>{current.details.map(d=><li key={d}>{d}</li>)}</ul></motion.div>}</AnimatePresence></div>
+      </section>
+      <section className="about-section" id="about"><div className="about-inner section-shell"><div className="about-side"><div className="about-monogram" aria-hidden="true">ss<span>.</span></div><p>A little about<br/>the person behind the code.</p><a className="text-link" href="/shivansh-soni-resume.pdf" download>Download résumé <Download size={16}/></a></div><Reveal className="about-main"><h2>Good engineering<br/>is a quiet kind<br/>of <span>confidence.</span></h2><div className="about-body"><p>I’m Shivansh, a backend software engineer based in Indore. My work spans enterprise banking systems, event-driven services, and now AI-native platforms.</p><p>I care about the decisions behind the code: how services communicate, how systems evolve, and how to turn a complex requirement into something dependable.</p></div><div className="about-foot"><span>Java at the core.</span><span>Curiosity in everything else. <ArrowUpRight size={17}/></span></div></Reveal></div></section>
+      <section className="experience-section section-shell" id="experience"><div className="section-heading"><Reveal><h2>The path so far<span className="green-period">.</span></h2></Reveal><p>Different domains.<br/>An expanding perspective.</p></div><div className="experience-list">{experiences.map((e,i)=><div className={`experience-item ${experience===i?"is-open":""}`} key={e.company}><button className="experience-trigger" aria-expanded={experience===i} aria-controls={`experience-${i}`} onClick={()=>setExperience(experience===i?null:i)}><span className="experience-period">{e.period}{i===0&&<span className="current-tag">Current</span>}</span><span className="experience-title"><strong>{e.company}</strong><span>{e.role}</span></span><span className="experience-icon">{experience===i?<Minus size={20}/>:<Plus size={20}/>}</span></button><AnimatePresence initial={false}>{experience===i&&<motion.div id={`experience-${i}`} className="experience-body" initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}} transition={{duration:.3,ease:easing}}><div><p>{e.copy}</p><div className="experience-detail"><div className="tags">{e.tags.map(t=><span key={t}>{t}</span>)}</div><span>{e.location}</span></div></div></motion.div>}</AnimatePresence></div>)}</div></section>
+      <section className="skills-section section-shell" id="toolkit"><div className="skills-intro"><h2>A considered<br/>set of tools.</h2><p>The stack changes.<br/>The engineering mindset stays.</p></div><div className="skills-content"><div className="skill-selector" role="tablist" aria-label="Skill categories">{skillGroups.map((s,i)=><button key={s.name} role="tab" id={`skill-tab-${i}`} aria-selected={skill===i} aria-controls="skill-panel" onClick={()=>setSkill(i)} tabIndex={skill===i?0:-1} onKeyDown={e=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();const n=(i+(e.key==="ArrowRight"?1:3))%4;setSkill(n);document.getElementById(`skill-tab-${n}`)?.focus();}}} className={skill===i?"selected":""}><s.icon size={18}/>{s.name}{skill===i&&<motion.span layoutId="skill-bg" className="skill-bg" transition={{duration:.25}}/>}</button>)}</div><div id="skill-panel" role="tabpanel" aria-labelledby={`skill-tab-${skill}`}><AnimatePresence mode="wait"><motion.div key={skill} initial={{opacity:0,y:reduced?0:8}} animate={{opacity:1,y:0}} exit={{opacity:0}} transition={{duration:.2}}><p className="skill-summary">{skillGroups[skill].summary}</p><div className="skill-tags">{skillGroups[skill].skills.map(s=><span key={s}>{s}</span>)}</div></motion.div></AnimatePresence></div></div></section>
+      <section className="credentials section-shell"><div><span className="credential-label">Education</span><h3>B.Tech, Information Technology</h3><p>Technocrats Institute of Technology</p><span>2020 — 2024</span></div><div><span className="credential-label">Microsoft certified</span><h3>Azure Fundamentals</h3><p>Azure AI Fundamentals</p><span>Cloud foundations. AI foundations.</span></div><div><span className="credential-label">Problem solving</span><h3>Top 12%</h3><p>LeetCode contest rating</p><span>A habit of thinking things through.</span></div></section>
+      <section className="contact-section" id="contact"><div className="section-shell contact-inner"><div className="contact-top"><span><span className="status-dot"/> Start a conversation</span><span>INDORE, INDIA / {new Date().getFullYear()}</span></div><h2>Great things start<br/>with a <a href={`mailto:${EMAIL}`}>hello<ArrowUpRight aria-hidden="true"/></a><span className="green-period">.</span></h2><div className="contact-bottom"><div><p>Have a thoughtful problem to solve?<br/>I’d love to hear about it.</p><div className="email-row"><a href={`mailto:${EMAIL}`}>{EMAIL}</a><button className="icon-button copy-email" aria-label={copied?"Email copied":"Copy email address"} onClick={copyEmail}>{copied?<Check size={17}/>:<Copy size={17}/>}</button><span className="copy-feedback" role="status">{copied?"Copied!":copyError?"Please select the email to copy.":""}</span></div></div><div className="social-links"><a href="https://www.linkedin.com/in/shivansh1soni/" target="_blank" rel="noopener noreferrer"><BriefcaseBusiness size={17}/>LinkedIn<ArrowUpRight size={16}/></a><a href="https://github.com/sonii-shivansh" target="_blank" rel="noopener noreferrer"><Code2 size={17}/>GitHub<ArrowUpRight size={16}/></a><a href="/shivansh-soni-resume.pdf" download><Download size={17}/>Résumé<ArrowUpRight size={16}/></a></div></div></div></section>
+    </main><footer className="footer section-shell"><a href="#home" className="footer-name">Shivansh Soni<span>© {new Date().getFullYear()}</span></a><div className="footer-right"><button onClick={()=>setColophon(!colophon)} aria-expanded={colophon} aria-controls="colophon">Behind the build {colophon?<Minus size={13}/>:<Plus size={13}/>}</button><a href="#home">Back to top <ArrowUpRight size={14}/></a></div></footer>
+    <AnimatePresence>{colophon&&<motion.section id="colophon" className="colophon section-shell" initial={{height:0,opacity:0}} animate={{height:"auto",opacity:1}} exit={{height:0,opacity:0}}><div className="colophon-intro"><h2>Built with intention.</h2><p>A custom React portfolio with Framer Motion, an original Canvas particle study, self-hosted typography, and accessible motion preferences. Design references: Motion, Dots UI, Watermelon UI, Manus, and Impeccable. UI/UX Pro Max informed interaction and accessibility decisions.</p><div className="colophon-links"><a href="https://motion.dev" target="_blank" rel="noreferrer">Motion ↗</a><a href="https://dotsui.dev" target="_blank" rel="noreferrer">Dots UI ↗</a><a href="https://ui.watermelon.sh" target="_blank" rel="noreferrer">Watermelon UI ↗</a><a href="https://manus.im" target="_blank" rel="noreferrer">Manus ↗</a><a href="https://github.com/pbakaus/impeccable" target="_blank" rel="noreferrer">Impeccable ↗</a></div></div><div className="reference-images"><figure><img src="/references/motion.jpg" width="691" height="1536" loading="lazy" alt="Supplied reference screenshot highlighting the Framer Motion package"/><figcaption>Motion reference supplied for this portfolio.</figcaption></figure><figure><img src="/references/design.jpg" width="691" height="1536" loading="lazy" alt="Supplied reference screenshot of the UI UX Pro Max GitHub repository"/><figcaption>Design guidance reference supplied for this portfolio.</figcaption></figure></div></motion.section>}</AnimatePresence>
+  </div></MotionConfig>;
+}
