@@ -1,0 +1,6 @@
+.lab-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 24px; padding-block: clamp(42px, 6vw, 86px); border-bottom: 1px solid var(--line); }
+.lab-entry-kicker { color: #ff7857; font: .74rem ui-monospace, monospace; letter-spacing: .11em; margin: 0 0 12px; }
+.lab-entry h2 { margin: 0; font-size: clamp(2rem, 5vw, 4rem); font-weight: 400; letter-spacing: -.055em; line-height: 1; }
+.lab-entry-copy { color: var(--muted); max-width: 55ch; font-size: 1rem; line-height: 1.6; margin: 14px 0 0; }
+.lab-entry .button { align-self: end; justify-self: start; }
+@media (max-width: 650px) { .lab-entry { grid-template-columns: 1fr; gap: 20px; } }

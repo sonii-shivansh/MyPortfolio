@@ -6,6 +6,7 @@ import { ArrowUpRight, ArrowDown, ArrowRight, Check, Copy, Download, Code2, Brie
 
 const EMAIL = "shivanshsoni568@gmail.com";
 import SpatialScene from "./SpatialScene";
+import "./lab/entry.css";
 
 const easing = [0.22, 1, 0.36, 1] as const;
 
@@ -64,8 +65,8 @@ export default function Home() {
   return <MotionConfig reducedMotion="user"><div className={`site ${paused?"motion-paused":""}`}>
     <motion.div className="reading-progress" style={{scaleX:progress}} />
     <a className="skip-link" href="#main">Skip to content</a>
-    <header className="header"><a className="wordmark" href="#home" aria-label="Shivansh Soni, home">s<span className="wordmark-dot">.</span><span className="wordmark-name">shivansh soni</span></a><nav className="desktop-nav" aria-label="Main navigation"><a href="#work">Selected work</a><a href="#about">About</a><a href="#experience">Experience</a></nav><a className="nav-contact" href="#contact">Let’s talk <ArrowUpRight size={16}/></a><button className="menu-toggle icon-button" onClick={()=>setMenu(!menu)} aria-expanded={menu} aria-controls="mobile-menu" aria-label={menu?"Close menu":"Open menu"}>{menu?<X/>:<Menu/>}</button>
-    <AnimatePresence>{menu&&<motion.nav id="mobile-menu" aria-label="Mobile navigation" className="mobile-menu" initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}}>{[ ["Selected work","work"],["About","about"],["Experience","experience"],["Contact","contact"] ].map(([label,id])=><a key={id} href={`#${id}`} onClick={()=>setMenu(false)}>{label}<ArrowUpRight/></a>)}</motion.nav>}</AnimatePresence></header>
+    <header className="header"><a className="wordmark" href="#home" aria-label="Shivansh Soni, home">s<span className="wordmark-dot">.</span><span className="wordmark-name">shivansh soni</span></a><nav className="desktop-nav" aria-label="Main navigation"><a href="#work">Selected work</a><a href="/lab">Systems Lab</a><a href="#about">About</a><a href="#experience">Experience</a></nav><a className="nav-contact" href="#contact">Let’s talk <ArrowUpRight size={16}/></a><button className="menu-toggle icon-button" onClick={()=>setMenu(!menu)} aria-expanded={menu} aria-controls="mobile-menu" aria-label={menu?"Close menu":"Open menu"}>{menu?<X/>:<Menu/>}</button>
+    <AnimatePresence>{menu&&<motion.nav id="mobile-menu" aria-label="Mobile navigation" className="mobile-menu" initial={{opacity:0,y:-10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}}>{[ ["Selected work","work"],["Systems Lab","/lab"],["About","about"],["Experience","experience"],["Contact","contact"] ].map(([label,id])=><a key={id} href={id.startsWith("/") ? id : `#${id}`} onClick={()=>setMenu(false)}>{label}<ArrowUpRight/></a>)}</motion.nav>}</AnimatePresence></header>
     <main id="main">
       <section className="hero section-shell" id="home">
         <div className="hero-topline"><span>Shivansh Soni — Software Engineer</span><span className="location"><span className="status-dot"/> Indore, India</span></div>
@@ -77,6 +78,14 @@ export default function Home() {
       </section>
       <div className="expertise-strip" aria-label="Areas of focus"><span>Java & Spring</span><span className="strip-asterisk">✳</span><span>Banking & payments</span><span className="strip-asterisk">✳</span><span>Event-driven systems</span><span className="strip-asterisk">✳</span><span>AI-native engineering</span></div>
       <KineticBridge paused={paused}/>
+      <section className="section-shell lab-entry" aria-labelledby="lab-entry-title">
+        <div>
+          <p className="lab-entry-kicker">SYSTEMS LAB / EXPERIMENT 01</p>
+          <h2 id="lab-entry-title">What happens when a payment retries?</h2>
+          <p className="lab-entry-copy">Replay the failure, change the consumer, and follow the evidence all the way to the ledger.</p>
+        </div>
+        <a className="button button-dark" href="/lab">Enter Systems Lab <ArrowUpRight size={17} aria-hidden="true" /></a>
+      </section>
       <section className="work-section section-shell" id="work"><div className="section-heading"><Reveal><h2>Built beneath<br/><span className="muted">the surface.</span></h2></Reveal><p>Selected contributions across banking,<br className="desktop-break"/> connected systems, and AI.</p></div>
         <div className="work-tabs" role="tablist" aria-label="Explore engineering work">{work.map((w,i)=><button key={w.kind} id={`work-tab-${i}`} role="tab" aria-selected={activeWork===i} aria-controls="work-panel" onClick={()=>{setActiveWork(i);setNotes(false);}} onKeyDown={e=>{if(e.key==="ArrowRight"||e.key==="ArrowLeft"){e.preventDefault();const n=(i+(e.key==="ArrowRight"?1:2))%3;setActiveWork(n);setNotes(false);document.getElementById(`work-tab-${n}`)?.focus();}}} tabIndex={activeWork===i?0:-1} className={activeWork===i?"selected":""}>{w.category}{activeWork===i&&<motion.span className="tab-line" layoutId="work-line" transition={{type:"spring",stiffness:380,damping:35}}/>}</button>)}</div>
         <div className="work-panel" role="tabpanel" id="work-panel" aria-labelledby={`work-tab-${activeWork}`}><AnimatePresence mode="wait"><motion.div className="work-grid" key={activeWork} initial={{opacity:.3,y:reduced?0:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:reduced?0:-8}} transition={{duration:.3,ease:easing}}><WorkVisual kind={current.kind} reduced={!!reduced||paused}/><div className="work-copy"><div className="work-company">{current.company}<span>{current.period}</span></div><h3>{current.title.split("\n").map((t,i)=><span key={i}>{t}</span>)}</h3><p>{current.desc}</p><div className="tags">{current.tags.map(tag=><span key={tag}>{tag}</span>)}</div><button className="text-link notes-button" aria-expanded={notes} aria-controls="work-notes" onClick={()=>setNotes(!notes)}>{notes?"Close contribution notes":"Read contribution notes"}{notes?<Minus size={18}/>:<ArrowUpRight size={18}/>}</button></div></motion.div></AnimatePresence>
