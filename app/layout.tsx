@@ -1,7 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./fonts.css";
 import "./globals.css";
 import "./spatial.css";
+import "./responsive.css";
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#111211" };
 export const metadata: Metadata = {
   metadataBase: new URL("https://shivansh-soni.vercel.app"),
   title: "Shivansh Soni — Backend & AI Engineer",

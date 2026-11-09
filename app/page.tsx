@@ -5,8 +5,14 @@ import { AnimatePresence, MotionConfig, motion, useReducedMotion, useScroll, use
 import { ArrowUpRight, ArrowDown, ArrowRight, Check, Copy, Download, Code2, BriefcaseBusiness, Menu, Minus, Plus, Pause, Play, X, Braces, Workflow, Layers, Sparkles, Mail } from "lucide-react";
 
 const EMAIL = "shivanshsoni568@gmail.com";
-import SpatialScene from "./SpatialScene";
+import SpatialScene, { type Sculpture } from "./SpatialScene";
 import "./lab/entry.css";
+
+const sculptures: { id: Sculpture; label: string; caption: string }[] = [
+  { id: "tesseract", label: "Tesseract", caption: "A four-dimensional cube projected into three dimensions." },
+  { id: "orbit", label: "Orbit", caption: "Three rings sharing a center, each following its own plane." },
+  { id: "knot", label: "Knot", caption: "A single continuous loop folded through three dimensions." },
+];
 
 const easing = [0.22, 1, 0.36, 1] as const;
 
@@ -19,7 +25,7 @@ function KineticBridge({paused}:{paused:boolean}){
 
 function Reveal({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) {
   const reduced = useReducedMotion();
-  return <motion.div className={className} initial={false} whileInView={reduced ? {} : { y: [24, 0], opacity: [0.45, 1] }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.75, ease: easing, delay }}>{children}</motion.div>;
+  return <motion.div className={className} initial={false} whileInView={reduced ? {} : { y: [16, 0], opacity: [0.65, 1] }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.75, ease: easing, delay }}>{children}</motion.div>;
 }
 
 const work = [
@@ -54,7 +60,7 @@ const skillGroups = [
 
 export default function Home() {
   const reduced = useReducedMotion();
-  const [menu,setMenu]=useState(false),[shape,setShape]=useState(0),[paused,setPaused]=useState(false),[activeWork,setActiveWork]=useState(0),[notes,setNotes]=useState(false),[experience,setExperience]=useState<number|null>(0),[skill,setSkill]=useState(0),[copied,setCopied]=useState(false),[copyError,setCopyError]=useState(false),[colophon,setColophon]=useState(false);
+  const [menu,setMenu]=useState(false),[shape,setShape]=useState<Sculpture>("tesseract"),[paused,setPaused]=useState(false),[activeWork,setActiveWork]=useState(0),[notes,setNotes]=useState(false),[experience,setExperience]=useState<number|null>(0),[skill,setSkill]=useState(0),[copied,setCopied]=useState(false),[copyError,setCopyError]=useState(false),[colophon,setColophon]=useState(false);
   const {scrollYProgress}=useScroll();
   const progress=useSpring(scrollYProgress,{stiffness:100,damping:30});
   const current=work[activeWork];
@@ -73,7 +79,29 @@ export default function Home() {
         <div className="hero-grid"><div className="hero-copy"><h1 aria-label="Engineering beyond the interface.">{["Engineering","beyond the","interface."].map((word,i)=><motion.span key={word} initial={false} animate={reduced?{}:{y:[50,0],opacity:[.25,1],filter:["blur(8px)","blur(0px)"]}} transition={{duration:1.2,delay:i*.13,ease:easing}} className={i===2?"accent-line":""}>{word}</motion.span>)}</h1>
           <div className="hero-intro"><span className="intro-rule"/><p>Java backends. Connected systems.<br/>A new dimension in AI-native engineering.</p></div>
           <div className="hero-actions"><a className="button button-dark" href="#work">Enter my world <ArrowDown size={17}/></a><a className="text-link" href="/shivansh-soni-resume.pdf" download>Résumé <Download size={16}/></a></div>
-        </div><div className="sculpture-area"><div className="scene-frame"/><div className="scene-reticle reticle-top"/><div className="scene-reticle reticle-bottom"/><SpatialScene shape={shape} paused={paused}/><div className="sculpture-coordinate top-left">EXPERIMENT / {String(shape+1).padStart(2,"0")}</div><div className="sculpture-coordinate top-right">{shape===2?"4D → 3D":"REALTIME / WEBGL"}</div><div className="sculpture-bottom"><div className="shape-controls" aria-label="Choose sculpture shape">{["Knot","Orbit","Tesseract"].map((s,i)=><button key={s} onClick={()=>setShape(i)} className={shape===i?"active":""} aria-pressed={shape===i}>{s}</button>)}</div><button className="pause-button icon-button" aria-label={paused?"Play animations":"Pause animations"} onClick={()=>setPaused(!paused)} aria-pressed={paused}>{paused?<Play size={14}/>:<Pause size={14}/>}</button></div><span className="sculpture-caption">{shape===2?"A four-dimensional cube, projected into three dimensions.":"A study in connection. Move your pointer or drag to explore."}</span></div></div>
+        </div>
+        <div className="sculpture-area">
+          <div className="scene-frame" aria-hidden="true" />
+          <div className="scene-reticle reticle-top" aria-hidden="true" />
+          <div className="scene-reticle reticle-bottom" aria-hidden="true" />
+          <SpatialScene shape={shape} paused={paused} />
+          <div className="sculpture-coordinate top-left">STUDY / 0{sculptures.findIndex((item) => item.id === shape) + 1}</div>
+          <div className="sculpture-coordinate top-right">{shape === "tesseract" ? "4D → 3D" : "3D / FORM STUDY"}</div>
+          <div className="sculpture-bottom">
+            <div className="shape-controls" role="group" aria-label="Choose sculpture shape">
+              {sculptures.map((item) => (
+                <button key={item.id} type="button" onClick={() => setShape(item.id)}
+                  className={shape === item.id ? "active" : ""} aria-pressed={shape === item.id}>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="pause-button icon-button" aria-label={paused ? "Play animations" : "Pause animations"} onClick={() => setPaused(!paused)} aria-pressed={paused}>
+              {paused ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
+            </button>
+          </div>
+          <p className="sculpture-caption" role="status">{sculptures.find((item) => item.id === shape)?.caption}</p>
+        </div></div>
         <div className="hero-bottom"><span className="hero-current"><span className="status-dot"/> Currently at <strong>Magic EdTech</strong></span><a className="scroll-hint" href="#work">Scroll to discover <ArrowDown size={14}/></a><span>SELECTED WORK / 2026</span></div>
       </section>
       <div className="expertise-strip" aria-label="Areas of focus"><span>Java & Spring</span><span className="strip-asterisk">✳</span><span>Banking & payments</span><span className="strip-asterisk">✳</span><span>Event-driven systems</span><span className="strip-asterisk">✳</span><span>AI-native engineering</span></div>

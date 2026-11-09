@@ -2,16 +2,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
-export default function SpatialScene({shape,paused}:{shape:number;paused:boolean}){
- const host=useRef<HTMLDivElement>(null);const live=useRef({shape,paused});const reduced=useReducedMotion();const [failed,setFailed]=useState(false);
+export type Sculpture = "tesseract" | "orbit" | "knot";
+
+function SculpturePoster({ shape }: { shape: Sculpture }) {
+  return (
+    <svg className="sculpture-poster" viewBox="0 0 320 280" fill="none" aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="4" strokeLinejoin="round">
+        {shape === "tesseract" ? (
+          <>
+            <path d="M53 61 202 42 263 104 114 126ZM53 61 54 201 114 246 114 126M54 201 202 182 263 223 114 246M202 42V182M263 104V223"/>
+            <path className="poster-core" d="M106 101 180 91 212 121 138 131ZM106 101V173L138 195V131M106 173 180 163 212 184 138 195M180 91V163M212 121V184"/>
+            <path d="M53 61 106 101M202 42 180 91M263 104 212 121M114 126 138 131M54 201 106 173M202 182 180 163M263 223 212 184M114 246 138 195" opacity=".55"/>
+          </>
+        ) : shape === "orbit" ? (
+          <>
+            <ellipse cx="160" cy="140" rx="115" ry="50" transform="rotate(30 160 140)"/>
+            <ellipse className="poster-core" cx="160" cy="140" rx="115" ry="50" transform="rotate(-30 160 140)"/>
+            <ellipse cx="160" cy="140" rx="115" ry="50" transform="rotate(90 160 140)"/>
+          </>
+        ) : (
+          <path d="M161 42C216 42 233 108 205 157C175 211 74 227 54 169C34 112 113 77 180 109C242 138 277 207 225 230C171 253 123 186 117 127C111 80 126 42 161 42Z" strokeWidth="14"/>
+        )}
+      </g>
+    </svg>
+  );
+}
+
+export default function SpatialScene({shape,paused}:{shape:Sculpture;paused:boolean}){
+ const host=useRef<HTMLDivElement>(null);const live=useRef({shape,paused});const reduced=useReducedMotion();const [ready,setReady]=useState(false);
  useEffect(()=>{live.current={shape,paused};},[shape,paused]);
  useEffect(()=>{
  let disposed=false,cleanup=()=>{};
  import('three').then(T=>{
  if(disposed||!host.current)return;
  const el=host.current;let renderer:InstanceType<typeof T.WebGLRenderer>;
- try{renderer=new T.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});}catch{setFailed(true);return;}
- renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setClearColor(0x000000,0);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;el.appendChild(renderer.domElement);
+ try{renderer=new T.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power'});}catch{setReady(false);return;}
+ renderer.setPixelRatio(Math.min(devicePixelRatio, el.clientWidth < 480 ? 1.35 : 1.7));renderer.setClearColor(0x000000,0);renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;el.appendChild(renderer.domElement);
  const scene=new T.Scene();const camera=new T.PerspectiveCamera(35,1,.1,100);camera.position.set(0,0,8.6);
  // An authored photographic lighting environment, generated locally; no external assets.
  const map=document.createElement('canvas');map.width=1024;map.height=512;const c=map.getContext('2d')!;
@@ -27,32 +53,58 @@ export default function SpatialScene({shape,paused}:{shape:number;paused:boolean
  const knotGeo=new T.TorusKnotGeometry(1.37,.41,220,36,2,3);const knot=new T.Mesh(knotGeo,material);group.add(knot);
  const orbitGroup=new T.Group();const ringGeo=new T.TorusGeometry(1.55,.19,24,160);for(let i=0;i<3;i++){const ring=new T.Mesh(ringGeo,i===1?orange:material);ring.rotation.set(i*Math.PI/3,i*Math.PI/2,0);orbitGroup.add(ring);}group.add(orbitGroup);
  const hyper=new T.Group();const vertices=Array.from({length:16},(_,i)=>[i&1?1:-1,i&2?1:-1,i&4?1:-1,i&8?1:-1]);
- const edgeGeo=new T.CylinderGeometry(.035,.035,1,10);const ballGeo=new T.SphereGeometry(.072,12,12);const balls=vertices.map(()=>{const b=new T.Mesh(ballGeo,orange);hyper.add(b);return b;});
+ const edgeGeo=new T.CylinderGeometry(.048,.048,1,12);const ballGeo=new T.SphereGeometry(.083,14,14);const balls=vertices.map(()=>{const b=new T.Mesh(ballGeo,orange);hyper.add(b);return b;});
  const edges:{a:number;b:number;mesh:InstanceType<typeof T.Mesh>}[]=[];
  for(let i=0;i<16;i++)for(let j=i+1;j<16;j++)if(((i^j)&((i^j)-1))===0){const mesh=new T.Mesh(edgeGeo,material);hyper.add(mesh);edges.push({a:i,b:j,mesh});}group.add(hyper);
  const up=new T.Vector3(0,1,0),temp=new T.Vector3();
  const points=vertices.map(()=>new T.Vector3());
  let pointer={x:0,y:0},drag={x:0,y:0,active:false},angle=0,t=0,last=0,raf=0,visible=true;
- const resize=()=>{const r=el.getBoundingClientRect();renderer.setSize(r.width,r.height);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();};
+ let previousShape = live.current.shape;
+ let formScale = 1;
+ let firstFrame = true;
+ let contextLost = false;
+ const resize = () => {
+   const width = el.clientWidth;
+   const height = el.clientHeight;
+   if (width < 1 || height < 1) return;
+   renderer.setSize(width, height, false);
+   camera.aspect = width / height;
+   camera.zoom = Math.min(1, camera.aspect) * .91;
+   camera.updateProjectionMatrix();
+ };
  const ro=new ResizeObserver(resize);ro.observe(el);resize();const io=new IntersectionObserver(([e])=>{visible=e.isIntersecting;});io.observe(el);
  const move=(e:PointerEvent)=>{const r=el.getBoundingClientRect();pointer={x:(e.clientX-r.left)/r.width-.5,y:(e.clientY-r.top)/r.height-.5};if(drag.active){angle+=(e.clientX-drag.x)*.006;drag.x=e.clientX;}};
  const down=(e:PointerEvent)=>{drag.active=true;drag.x=e.clientX;el.setPointerCapture(e.pointerId);};const end=()=>{drag.active=false;};const leave=()=>{if(!drag.active)pointer={x:0,y:0};};
  el.addEventListener('pointermove',move);el.addEventListener('pointerdown',down);el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);el.addEventListener('pointerleave',leave);
- const draw=(now:number)=>{raf=requestAnimationFrame(draw);if(!visible||document.hidden||now-last<33)return;last=now;
+ const draw=(now:number)=>{raf=requestAnimationFrame(draw);if(contextLost||!visible||document.hidden||now-last<33)return;last=now;
  const stop=live.current.paused||reduced;if(!stop)t+=.012;
- const s=live.current.shape;knot.visible=s===0;orbitGroup.visible=s===1;hyper.visible=s===2;
- const scroll=reduced?0:Math.min(window.scrollY/900,1);
- const targetY=.4+(stop?0:t*.18)+angle+(reduced?0:pointer.x*.7)+scroll*.9;
+ const selected = live.current.shape;
+ knot.visible = selected === "knot";
+ orbitGroup.visible = selected === "orbit";
+ hyper.visible = selected === "tesseract";
+ const scroll=stop?0:Math.min(window.scrollY/900,1);
+ const targetY=.4+t*.18+angle+(stop?0:pointer.x*.7)+scroll*.9;
  group.rotation.y+=(targetY-group.rotation.y)*.06;group.rotation.x+=((-.25+(reduced?0:pointer.y*.4)+scroll*.3)-group.rotation.x)*.06;
  group.rotation.z=Math.sin(t*.3)*.09;group.position.y=stop?0:Math.sin(t*.65)*.1;
- const scale=1-scroll*.12;group.scale.setScalar(scale);orbitGroup.rotation.z=t*.15;
- if(s===2){const a=t*.38+.35,b=t*.21+.3;
+ if (selected !== previousShape) {
+   formScale = stop ? 1 : .84;
+   previousShape = selected;
+ }
+ formScale += (1 - formScale) * .17;
+ group.scale.setScalar(formScale * (1 - scroll * .12));
+ orbitGroup.rotation.z = t * .15;
+ if(selected==="tesseract"){const a=t*.38+.35,b=t*.21+.3;
  vertices.forEach(([x,y,z,w],i)=>{const xx=x*Math.cos(a)-w*Math.sin(a),ww=x*Math.sin(a)+w*Math.cos(a),yy=y*Math.cos(b)-z*Math.sin(b),zz=y*Math.sin(b)+z*Math.cos(b);const perspective=2.8/(3.6-ww);points[i].set(xx*perspective,yy*perspective,zz*perspective);balls[i].position.copy(points[i]);});
  edges.forEach(({a,b,mesh})=>{mesh.position.copy(points[a]).add(points[b]).multiplyScalar(.5);temp.copy(points[b]).sub(points[a]);mesh.scale.y=temp.length();mesh.quaternion.setFromUnitVectors(up,temp.normalize());});}
- renderer.render(scene,camera);};raf=requestAnimationFrame(draw);
- const lost=(e:Event)=>{e.preventDefault();setFailed(true);};renderer.domElement.addEventListener('webglcontextlost',lost);
+ renderer.render(scene,camera);
+ if (firstFrame) {
+   firstFrame = false;
+   setReady(true);
+ }
+ };raf=requestAnimationFrame(draw);
+ const lost=(e:Event)=>{e.preventDefault();contextLost=true;setReady(false);};renderer.domElement.addEventListener('webglcontextlost',lost);
  cleanup=()=>{cancelAnimationFrame(raf);ro.disconnect();io.disconnect();el.removeEventListener('pointermove',move);el.removeEventListener('pointerdown',down);el.removeEventListener('pointerup',end);el.removeEventListener('pointercancel',end);el.removeEventListener('pointerleave',leave);renderer.domElement.removeEventListener('webglcontextlost',lost);knotGeo.dispose();ringGeo.dispose();edgeGeo.dispose();ballGeo.dispose();material.dispose();orange.dispose();env.dispose();tex.dispose();pm.dispose();renderer.dispose();renderer.domElement.remove();};
- }).catch(()=>setFailed(true));return()=>{disposed=true;cleanup();};
+ }).catch(()=>setReady(false));return()=>{disposed=true;cleanup();};
  },[reduced]);
- return <div className="spatial-host" ref={host} aria-hidden="true">{failed&&<div className="scene-fallback"><div/><div/><div/></div>}</div>;
+ return <div className="spatial-host" ref={host} data-shape={shape} aria-hidden="true">{!ready && <SculpturePoster shape={shape} />}</div>;
 }
